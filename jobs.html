@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Picker Suite</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <nav class="bg-white shadow-md mb-8">
+        <div class="container mx-auto px-4">
+            <div class="flex justify-between items-center py-4">
+                <div class="flex space-x-8">
+                    <a href="/" class="text-purple-600 hover:text-purple-800 font-medium">🎯 Smart Pick</a>
+                    <a href="/movies" class="text-blue-600 hover:text-blue-800 font-medium">🎬 Movies</a>
+                    <a href="/jobs" class="text-green-600 hover:text-green-800 font-medium">💼 Jobs</a>
+                    <a href="/grocery" class="text-orange-600 hover:text-orange-800 font-medium">🛒 Grocery</a>
+                </div>
+                <div class="flex items-center space-x-4">
+                    {% if user %}
+                        <span class="text-gray-700">Welcome, {{ user.username }}!</span>
+                        <a href="/profile" class="text-purple-600 hover:text-purple-800 font-medium">👤 Profile</a>
+                        <a href="/logout" class="text-red-600 hover:text-red-800 font-medium">🚪 Logout</a>
+                    {% else %}
+                        <a href="/login" class="text-blue-600 hover:text-blue-800 font-medium">🔑 Login</a>
+                        <a href="/register" class="text-green-600 hover:text-green-800 font-medium">📝 Register</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mx-auto px-4 py-8">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-green-600 mb-2">💼 Smart Job Picker</h1>
+            <p class="text-gray-600">Find your perfect job match - {{ jobs|length }}+ opportunities available</p>
+        </header>
+
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <div class="mb-6">
+                <label class="block text-lg font-medium text-gray-700 mb-2">🔍 Search Jobs</label>
+                <input type="text" id="jobSearch" placeholder="Search by job title (e.g. Software Engineer, Teacher, Doctor...)" class="w-full border border-gray-300 rounded-lg px-4 py-3 text-lg">
+            </div>
+            
+            <div class="mb-6">
+                <label class="block text-lg font-medium text-gray-700 mb-2">🎯 Quick Categories</label>
+                <div class="flex flex-wrap gap-2">
+                    <button onclick="searchJobs('Software')" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">💻 Tech</button>
+                    <button onclick="searchJobs('Manager')" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded">👔 Business</button>
+                    <button onclick="searchJobs('Doctor')" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded">🏥 Healthcare</button>
+                    <button onclick="searchJobs('Teacher')" class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded">📚 Education</button>
+                    <button onclick="searchJobs('Designer')" class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded">🎨 Creative</button>
+                    <button onclick="searchJobs('Engineer')" class="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded">⚙️ Engineering</button>
+                    <button onclick="showAllJobs()" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded">📋 Show All</button>
+                </div>
+            </div>
+            
+            <div id="jobCount" class="text-sm text-gray-600 mb-4">Showing {{ jobs|length }} jobs</div>
+            <div id="results" class="mt-4"></div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="jobsGrid">
+            {% for job, skills in jobs.items() %}
+            <div class="bg-white rounded-lg shadow-md p-4 hover:shadow-lg transition-shadow job-card">
+                <h3 class="text-lg font-semibold text-gray-800 mb-2">{{ job }}</h3>
+                <div class="mb-3">
+                    <span class="text-xs text-gray-500">Required Skills:</span>
+                    <div class="flex flex-wrap gap-1 mt-1">
+                        {% for skill in skills[:3] %}
+                        <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">{{ skill }}</span>
+                        {% endfor %}
+                        {% if skills|length > 3 %}
+                        <span class="text-xs text-gray-500">+{{ skills|length - 3 }} more</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <button onclick="showJobDetails('{{ job }}')" class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm">View Details</button>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <script>
+        const allJobs = {{ jobs|tojson }};
+        
+        document.getElementById('jobSearch').addEventListener('input', function() {
+            const query = this.value.toLowerCase();
+            if (query.length > 0) {
+                searchJobs(query);
+            } else {
+                showAllJobs();
+            }
+        });
+        
+        function searchJobs(query) {
+            const filteredJobs = Object.keys(allJobs).filter(job => 
+                job.toLowerCase().includes(query.toLowerCase())
+            );
+            
+            updateJobDisplay(filteredJobs, `Search results for "${query}"`);
+        }
+        
+        function updateJobDisplay(jobList, title = '') {
+            const jobsGrid = document.getElementById('jobsGrid');
+            const jobCount = document.getElementById('jobCount');
+            const results = document.getElementById('results');
+            
+            jobCount.textContent = `Showing ${jobList.length} jobs`;
+            
+            if (title) {
+                results.innerHTML = `
+                    <div class="bg-blue-50 border border-blue-200 rounded p-3">
+                        <h3 class="text-lg font-semibold text-blue-800">${title} (${jobList.length} found)</h3>
+                    </div>
+                `;
+            }
+            
+            jobsGrid.innerHTML = jobList.map(job => `
+                <div class="bg-white rounded-lg shadow-md p-4 hover:shadow-lg transition-shadow job-card">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-2">${job}</h3>
+                    <div class="mb-3">
+                        <span class="text-xs text-gray-500">Required Skills:</span>
+                        <div class="flex flex-wrap gap-1 mt-1">
+                            ${allJobs[job].slice(0, 3).map(skill => `<span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">${skill}</span>`).join('')}
+                            ${allJobs[job].length > 3 ? `<span class="text-xs text-gray-500">+${allJobs[job].length - 3} more</span>` : ''}
+                        </div>
+                    </div>
+                    <button onclick="showJobDetails('${job}')" class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm">View Details</button>
+                </div>
+            `).join('');
+        }
+        
+        function showJobDetails(jobTitle) {
+            const skills = allJobs[jobTitle] || [];
+            document.getElementById('results').innerHTML = `
+                <div class="bg-green-50 border border-green-200 rounded p-4">
+                    <h3 class="text-xl font-semibold text-green-800 mb-3">${jobTitle}</h3>
+                    <p class="text-sm text-gray-600 mb-2">Required Skills (${skills.length}):</p>
+                    <div class="flex flex-wrap gap-2">
+                        ${skills.map(skill => `<span class="bg-green-100 text-green-800 text-sm px-3 py-1 rounded">${skill}</span>`).join('')}
+                    </div>
+                    <div class="mt-4">
+                        <p class="text-sm text-gray-600 mb-2">💡 Tips for this role:</p>
+                        <ul class="text-sm text-gray-700 list-disc list-inside">
+                            <li>Focus on developing these key skills</li>
+                            <li>Consider online courses or certifications</li>
+                            <li>Build a portfolio showcasing your abilities</li>
+                        </ul>
+                    </div>
+                    <button onclick="document.getElementById('results').innerHTML = ''" class="mt-3 bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm">Close</button>
+                </div>
+            `;
+        }
+        
+        function showAllJobs() {
+            document.getElementById('jobSearch').value = '';
+            document.getElementById('results').innerHTML = '';
+            location.reload();
+        }
+    </script>
+</body>
+</html>
